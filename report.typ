@@ -82,7 +82,7 @@
     table(
       stroke: none,
       columns: (auto, 25%, auto, 25%),
-      text(weight: "bold")[汇报题目:],table.cell(colspan: 3)[#text(font: ("Times New Roman", "SimSun"))[肩肘系统的几何动力学与ROS仿真实现]#v(-0.8em)#line(length: 100%, stroke: 0.5pt)],
+      text(weight: "bold")[汇报题目:],table.cell(colspan: 3)[#text(font: ("Times New Roman", "SimSun"))[肩关节的几何动力学建模与ROS仿真实现]#v(-0.8em)#line(length: 100%, stroke: 0.5pt)],
       text(weight: "bold")[专#h(2.0em)业：], table.cell(colspan: 3)[生物医学工程#v(-0.8em)#line(length: 100%, stroke: 0.5pt)],
       text(weight: "bold")[姓#h(2.0em)名:], [王彦恒#v(-0.8em)#line(length: 100%, stroke: 0.5pt)], text(weight: "bold")[学#h(2.0em)号:], [11123230#v(-0.8em)#line(length: 100%, stroke: 0.5pt)],
       text(weight: "bold")[姓#h(2.0em)名:], [刘炳漳#v(-0.8em)#line(length: 100%, stroke: 0.5pt)], text(weight: "bold")[学#h(2.0em)号:], [11223124#v(-0.8em)#line(length: 100%, stroke: 0.5pt)],
@@ -100,9 +100,9 @@
 // #align(center, text(size: 20pt, weight: "bold")[肩肘系统的几何动力学与ROS仿真实现])
 
 #align(center, text(size: 16pt, font: ("Times New Roman", "SimHei"), weight: "bold")[摘要])
-本研究以人体肩肘复合系统为研究对象，提出一种基于几何动力学的建模与仿真方法。从欧氏空间刚体变换的对称性出发，引入李群SE(3)以及李代数se(3)作为核心数学工具，通过利用几何动力学中的旋量理论，指数坐标，拉格朗日力学等，构建了肩关节（球窝关节）与肘关节（铰链关节）的完整运动学与动力学模型。同时为验证模型的有效性并展示其效果，将使用ROS实现该模型的实时仿真，利用ROS的tf坐标系变换以及rviz可视化，构建包含骨骼、肌肉和关节的力学可视化仿真平台。并对比仿真结果与Hill肌肉模型结果，验证几何动力学模型在描述人体上肢运动中的准确性与优越性。
+本研究以人体肩关节（球窝关节）为研究对象，提出一种基于几何动力学的建模与仿真方法。从欧氏空间刚体变换的对称性出发，引入李群SE(3)及其李代数se(3)作为核心数学工具，结合旋量理论、指数坐标等几何动力学方法，构建了肩关节（三自由度旋转关节）的完整运动学与动力学模型。为验证模型的有效性并直观展示运动过程，本研究基于ROS框架实现了该模型的实时仿真，利用ROS的tf坐标系变换与rviz可视化工具，搭建了包含骨骼与关节的力学可视化仿真平台。进一步，通过轨迹跟踪或力矩对比实验，验证了几何动力学模型在描述人体肩部运动中的准确性与可行性。
 
-#h(-2.0em)*Keywords*：*李群、李代数、几何力学、肩肘系统、ROS*
+#h(-2.0em)*Keywords*：*李群、李代数、几何力学、肩关节、ROS*
 
 #pagebreak()
 
@@ -128,7 +128,7 @@
 #pagebreak()
 = 理论基础
 #h(2.0em)
-这一章节，将对构建肩肘系统数学模型所需的基础理论进行简要的介绍，主要包括李理论和拉格朗日力学两部分，这两个理论共同构成了肩肘运动系统运动学和动力学计算的基础。
+这一章节，将对构建肩关节数学模型所需的基础理论进行简要的介绍，主要包括李理论和旋量动力学两部分，这两个理论共同构成了肩关节运动学和动力学计算的基础。
 
 == 李理论
 
@@ -232,88 +232,105 @@ $ exp(xi^and) = mat(exp(omega^and), G rho; 0, 1) $
 其中 $G$ 为矩阵，计算公式如下，
 $ G = (sin abs(omega))/abs(omega) I + (1-(sin abs(omega))/abs(omega)) (omega omega^T)/abs(omega)^2 + (1-cos abs(omega))/abs(omega)^2 omega^and $
 
-#h(2.0em)
-到此，本节完成了李群、李代数基础理论的铺垫，围绕 $S O(3)$ 以及 $S E(3)$ 展开，这些数学工具的引入，为三维空间中的刚体运动提供了统一的数学框架，并为后续建模过程的严谨性与高效性奠定了基础。
-
-== 拉格朗日力学
+=== 旋量理论
 
 #h(2.0em)
-拉格朗日力学是经典力学的一种重新表述，它基于变分原理，为分析复杂约束系统提供了统一而强大的框架。其核心思想是：一个力学系统的真实运动轨迹，是使得某个称为“作用量”的标量泛函取极值（通常为极小值）的那条路径。本节从变分法出发，逐步推导出拉格朗日体系下的力学方程。
+基于李理论，我们可以构建处理刚体变换作用的有效数学工具，但是对于刚体运动，我们仍需研究其速度，刚体运动的速度包括*线速度*与*角速度*两种，与之对应的，有*力*和*力矩*的概念，而基于旋量理论，我们可以构建统一的速度与力的表述。
 
-=== 变分法基础
-
-#h(2.0em)
-考虑一个依赖于函数 $q(t)$ 以及其一阶导 $dot(q)(t)$ 的泛函 $S[q]$，其形式为，
-$ S[q] = integral_(t_1)^(t_2) L(q(t), dot(q)(t), t) "d"t $
-
-固定端点条件为 $q(t_1) = q_1, space q(t_2) = q_2$，目标是找到是泛函 $S$ 取极值的函数 $q(t)$。
-
-通过变分法，我们可以推导得到取极值的计算公式，即*欧拉-拉格朗日方程*。对函数引入一个微小的变化，得到新的函数 $q_epsilon (t) = q(t) + epsilon eta(t)$，其中 $eta(t)$ 是满足边界条件 $eta(t_1) = eta(t_2) = 0$ 的可微函数，$epsilon$ 是一个小参数。由此，作用量变为参数 $epsilon$ 的函数，
-$ S(epsilon) = integral_(t_1)^(t_2) L(q(t) + epsilon eta(t), dot(q)(t) + epsilon dot(eta)(t), t) "d"t $
-
-若要取得极值，则需满足，
-$ ("d"S)/("d" epsilon) bar.v _(epsilon = 0) = 0 $
-
-计算导数，有，
-$ ("d"S)/("d" epsilon) bar.v _(epsilon = 0) = integral_(t_1)^(t_2) ((partial L)/(partial q) eta + (partial L)/(partial dot(q)) dot(eta))"d"t = 0 $
-对第二项使用分部积分法，
-$ integral_(t_1)^(t_2) (partial L)/(partial dot(q)) dot(eta) space "d"t = [(partial L)/(partial dot(q))eta]_(t_1)^(t_2) - integral_(t_1)^(t_2) "d"/("d"t) ((partial L)/(partial dot(q)))eta space "d"t $
-根据边界条件 $eta(t_1) = eta(t_2) = 0$，带回原式整理得到，
-$ integral_(t_1)^(t_2) [(partial L)/(partial q) - "d"/("d"t) ((partial L)/(partial dot(q)))] eta(t)"d"t = 0 $
-
-其中 $eta(t)$ 是任意得函数，因此要使积分为0，则被积函数需处处为0，由此得到了*欧拉-拉格朗日方程*，
-$ (partial L)/(partial q) - "d"/("d"t) ((partial L)/(partial dot(q))) = 0 $
-
-=== 拉格朗日力学
-#h(2.0em)
-拉格朗日力学体系是对经典力学的一种重新表述，由拉格朗日在18世纪提出，其从能量的角度描述系统的动力学性质，而非牛顿力学的矢量角度。其*核心思想*包括以下三个部分：
-- *广义坐标*：用一组独立的、能完全确定系统位形的变量 $q_i$（广义坐标）来描述系统，能够自然地处理约束问题；
-- *拉格朗日函数*：定义为 $cal(L)=cal(K) - cal(P)$，其中 $cal(K)$ 表示动能，$cal(P)$ 表示势能；
-- *最小作用量原理*：系统真实运动的路径，是使作用量取极值的路径，作用量 $S$ 定义如下，真实路径满足 $delta S=0$ 的条件，$ S = integral_(t_1)^(t_2) cal(L)(q, dot(q), t) "d"t $ 
+#figure(
+  image("figures/fig2.png", width: 60%),
+  caption: [坐标变换示意图],
+  supplement: [图]
+)
 
 #h(2.0em)
-根据核心思想，同时基于*达朗贝尔原理*，可以推导得到更加一般的拉格朗日方程，
-$ "d"/("d"t) ((partial cal(L))/(partial dot(q))) - (partial cal(L))/(partial q) = tau $
-其中，$tau$ 是作用在广义坐标上的广义力，如果广义坐标对应平移量，则广义力就是常规意义下的力，如果广义坐标对应旋转量，则广义力代表力矩。
+设上图中两个坐标系 ${s}$ 与 ${b}$ 之间的变换矩阵为 $T$，满足，
+$ T(t) = mat(R(t), p(t); 0, 1) $
+其中，$R(t)$ 是旋转矩阵，$p(t)$ 为平移向量。
 
-从拉格朗日方程，可以将动力学方程整理为如下标准形式，
-$ M(q)dot.double(q) + C(q, dot(q))dot(q) + G(q) = tau $
+因为速度与参考系相关，所以在此引入*空间运动旋量*和*本体运动旋量*的定义，
+#def("Space Twist", [空间运动旋量（Space Twist），记作 $cal(V)_s$，
+$ cal(V)_s^and = dot(T)T^(-1) = mat(omega_s^and, v_s; 0, 0)\
+cal(V)_s = mat(omega_s; v_s) in RR^6 $
+空间运动旋量描述了在坐标系 ${s}$ 下的相对速度。
+])
+
+#def("Body Twist", [本体运动旋量（Space Twist），记作 $cal(V)_b$，
+$ cal(V)_b^and = T^(-1)dot(T) = mat(omega_b^and, v_b; 0, 0)\
+cal(V)_b = mat(omega_b; v_b) in RR^6 $
+同理，本体运动旋量描述了在坐标系 ${b}$ 下的相对速度。
+])
+
+#def("伴随表示", [根据对旋量的定义，我们可以发现，空间运动旋量与本体运动旋量之间存在变换公式，
+$ cal(V)_s^and = T cal(V)_b^and T^(-1) = "Ad"_T cal(V)^and_b $
+这种变换公式我们称为伴随表示。而将旋量写为向量形式时，伴随表示可以化简为单个矩阵乘法，记作如下形式
+$ cal(V)_s = ["Ad"_T]cal(V)_b\
+mat(omega_s; v_s) = mat(R, 0; p^and R, R)mat(omega_b; v_b) $
+伴随表示本质上是对李代数在不同坐标系之间的相互转换的计算公式。
+])
+
+同样的，我们可以使用旋量理论对力进行描述，也就是力旋量的定义。
+
+#def("力旋量", [力旋量一般使用向量形式进行描述，记作，
+$ cal(F) = mat(tau; f) in RR^6 $
+其中，$tau$ 表示力矩，$f$ 表示力。
+
+那么对于坐标系 ${s}$ 和坐标系 ${b}$ 中的力旋量 $cal(F)_s, cal(F)_b$，则有转换公式为，
+$ cal(F)_b = ["Ad"_T]^T cal(F)_s $
+])
 
 #h(2.0em)
-在此对标准形式进行简单推导证明。首先建立拉格朗日函数，动能项和势能项分别为，
-$ cal(K) = 1/2 dot(q)^T M(q) dot(q) $
-$ cal(P) = cal(P)(q) $
-其中，$M(q)$ 是质量矩阵，一个正定的对称矩阵。
+综上，旋量理论凭借其对刚体运动（平移 + 转动）的统一矢量化描述，结合已完备的李群 / 李代数数学工具、符号计算方法及多体系统建模框架，为复杂多刚体系统的动力学建模提供了高度自洽的理论基础。
 
-带回拉格朗日方程可以整理得到，
-$ M(q) dot.double(q) + [dot(M)(q)dot(q) - 1/2 partial/(partial q)(dot(q)^T M(q) dot(q))] + (partial V)/(partial q) = tau $
+== 旋量动力学
+#h(2.0em)
+基于李理论的内容，我们可以对传统的牛顿力学进行“重构”，使用更为先进的数学工具，为刚体动力学构建起统一的理论框架。
 
-将中间一项记作如下形式，
-$ C(q, dot(q))dot(q) = dot(M)(q)dot(q) - 1/2 partial/(partial q)(dot(q)^T M(q) dot(q)) $
+在研究多刚体复杂系统动力学建模时，若我们在常规的惯性坐标系下进行研究，由于位姿的变化，旋量的表达式会变得异常复杂，因此我们更多地倾向于在体坐标系下进行研究，也就是跟随刚体运动的坐标系，这样保证了刚体相对于体坐标系位姿的相对恒定，在计算时形式更简洁、明确。
 
-根据整理可以得到 $C(q, dot(q))$ 的常见形式为，
-$ C_(k j)(q, dot(q)) = sum_(i=1)^n Gamma_(k j i)(q)dot(q)_i $
-其中，克里斯托费尔符号 $Gamma_(k j i)$ 定义如下，
-$ Gamma_(k j i) = 1/2((partial M_(k j))/(partial q_i)+(partial M_(k i))/(partial q_j) -(partial M_(i j))/(partial q_k)) $
-
-带回，得到了最终的标准形式，
-$ M(q)dot.double(q) + C(q, dot(q))dot(q) + G(q) = tau $
-
-方程左边分为了三项，其物理含义如下，
-- *惯性项* $M(q)dot.double(q)$ ：表示系统的惯性；
-- *科氏力项* $C(q, dot(q))dot(q)$ ：这一项描述了系统的科氏力和离心力效应；
-- *重力项* $G(q)$ ：由势能梯度产生。
+设惯性坐标系 ${s}$，本体坐标系 ${b}$。在本体坐标系下，我们使用*广义惯性矩阵*代替质量与转动惯量，其定义为，
+$ cal(M)_b = mat(bold(I)_b, m bold(r)_c^and; -m bold(r)_c^and, m bold(E)_3) $
+其中，
+- $bold(r)_c$ 表示质心处的位置向量。
+- $m$ 表示质量。
+- $bold(I)_b = bold(I)_c + m(bold(r)_c^T bold(r)_c bold(E)_3 - bold(r)_c bold(r)_c^T)$ 表示在坐标系原点处的惯性张量。
+- $bold(E)_3$ 表示 $3 times 3$ 的单位矩阵。
 
 #h(2.0em)
-本节通过严谨推导得到拉格朗日方程的标准形式，明确以广义坐标描述肩肘关节系统的自由度，将系统动力学问题转化为基于拉格朗日函数 $cal(L) = cal(K) - cal(P)$ 的变分方程求解。该方程为后续肩肘关节系统的动力学仿真奠定了核心理论基础。
+进而，我们可以给出旋量形式下的动量，即*动量旋量*的定义为，
+$ cal(P)_b = cal(M)_b cal(V)_b $
+
+#h(2.0em)
+设本体坐标系下动量旋量为 $cal(P)_b$，惯性系下动量旋量为 $cal(P)_s$，惯性系到体坐标系的变换矩阵为 $g$，动量旋量与力旋量协变，因此变换公式相同，
+$ cal(F)_b = ["Ad"_g]^T cal(F)_s\
+cal(P)_b = ["Ad"_g]^T cal(P)_s $
+
+根据惯性系中，牛顿第二定律为，
+$ cal(F)_s = "d"/("d"t)cal(P)_s $
+则本体坐标系下力旋量的计算公式为，
+$ cal(F)_b = ["Ad"_g]^T cal(F)_s = ["Ad"_g]^T "d"/("d"t)cal(P)_s = ["Ad"_g]^T "d"/("d"t) (["Ad"_(g^(-1))]^T cal(P)_b) $
+
+由此展开化简，就得到了旋量动力学的统一公式为，
+$ cal(F)_b = cal(M)_b dot(cal(V))_b - ["ad"_(cal(V)_b^and)]^T cal(M)_b cal(V)_b $
+
+其中，$["ad"_(cal(V)_b^and)]$ 是李代数伴随表示矩阵，展开为，
+$ ["ad"_(cal(V)_b^and)] = mat(omega_b^and, 0; v_b^and, omega_b^and) $
+
+#h(2.0em)
+基于我们推导得到的旋量动力学公式，单肩关节的几何动力学建模已实现了 “刚体运动统一描述 — 旋量动量传递 — 体坐标系下方程简化” 的完整逻辑闭环。为后续ROS平台仿真的等操作提供了充足的理论基础。
 
 #pagebreak()
 = 系统建模方法
 
+== 总体建模框架
 
-#pagebreak()
-= 逆运动学与动力学求解
+== 运动学建模
 
+=== 前向运动学
+
+=== 逆运动学
+
+== 动力学建模
 
 #pagebreak()
 = ROS仿真实现
