@@ -426,10 +426,10 @@ $ cal(M)_B &= mat(bold(I), m bold(r)_c^and;-m bold(r)_c^and, m bold(E)_3)\
 $ T^B (t) = mat(R^B, 0; 0, 1) = mat(R_0 exp(log(R_0^(-1)R_1)s(t)), 0; 0, 1) $
 
 根据本体运动旋量定义，计算得到，
-$ cal(V)_B^and = (T^B)^(-1) dot(T)^B = mat([log(R_0^(-1)R_1)]dot(s)(t), 0; 0, 1) $
+$ cal(V)_B^and = (T^B)^(-1) dot(T)^B = mat([log(R_0^(-1)R_1)]dot(s)(t), 0; 0, 0) $
 
 以及运动旋量的导数，加速度旋量，
-$ dot(cal(V))^and_B = mat([log(R_0^(-1)R_1)]dot.double(s)(t), 0; 0, 1) $
+$ dot(cal(V))^and_B = mat([log(R_0^(-1)R_1)]dot.double(s)(t), 0; 0, 0) $
 
 将这些计算结果，带回旋量动力学的统一公式，
 $ cal(F)_B = cal(M)_B dot(cal(V))_B - ["ad"_(cal(V)_B^and)]^T cal(M)_B cal(V)_B $
